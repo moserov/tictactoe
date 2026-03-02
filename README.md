@@ -1,89 +1,60 @@
-# tictactoe
+# Tic Tac Toe Challenge
 
-A new Flutter project.
+## Setup & Start
+Um das Projekt lokal zu starten, sind folgende Schritte nötig:
+* Repository klonen und in den Projektordner navigieren.
+* Im Terminal `flutter pub get` ausführen, um alle Abhängigkeiten (z.B. Bloc, Equatable) zu laden.
+* Die App mit `flutter run` auf einem Emulator oder Device starten.
+* Die Spiellogik kann separat mit `flutter test` geprüft werden.
 
-## Task:
+## Annahmen & Scope
+Für diese Challenge bin ich davon ausgegangen, dass zwei Spieler das Spiel abwechselnd an einem gemeinsamen Gerät bedienen (Local Multiplayer). 
 
-## Kontext
-Diese Aufgabe ist bewusst **offen** formuliert. Uns geht es nicht darum, dass du **alles fertig** machst, sondern darum **wie du arbeitest**: 
-- Wie hast du priorisiert?
-- Welche Entscheidungen gab es zu treffen und warum hast du dich für die gewählte Lösung entschieden? (Bspw. Architektur, Statemanagement, Projektstruktur, etc.)
-- Wie schaffst du Struktur?
-- Wie stellst du die Qualität sicher?
+Bewusst weggelassen habe ich einen komplexen `data`-Layer mit Repositories. Da die App aktuell keine Daten von externen Quellen (API/Datenbank) bezieht oder dauerhaft speichert. Um den Fokus auf die Architektur zu legen habe ich auf komplexes UX-Design, mit Animationen oder weiteres verzichtet. Dennoch habe ich eine **AppBar** hinzugefügt, da diese für die Navigation und das "App-Gefühl" (z.B. Zurück-Button) essentiell ist.
 
-Es braucht keine glänzende UI, aber sie sollte klar und funktional sein. 
 
-Du darfst Annahmen treffen, sollten Teile der Aufgabenstellung unklar sein oder fehlen - bitte dokumentiere sie kurz.
-Generell darfst du KI/Tools nutzen. Wichtig ist, dass du nachvollziehbar bleibst und nicht blind übernimmst. 
-Die komplette Aufgabe / das komplette Ergebnis / komplette Klassen sollten logischerweise nicht in die KI gegeben werden. 
-Hier ist ansonsten das Potential SEHR hoch, dass wir später eine viel zu hohe Erwartungshaltung an dich haben.
+## Struktur & Architektur
+Ich habe mich für eine **Feature-first** Struktur entschieden - Aufteilung der Ordner nach Features (game, start). 
+* **Business Logic**: Das State-Management wird über das **BLoC Pattern** gelöst, um UI und Logik strikt zu trennen. 
+* **Domain Layer**: Die `GameEngine` ist die "Single Source of Truth" für die Gewinn-Regeln und völlig unabhängig von Flutter (Pure Dart).
+* **TDD**: Die Kernlogik (Gewinn-Abfrage) wurde testgetrieben entwickelt.
+* **Styling**: Analog zu zentralen CSS-Dateien in der Web-Entwicklung nutze ich eine dedizierte `AppTheme`-Datei, um Farben und Styles zentral zu steuern.
 
-## Zeitrahmen
-Bitte timeboxe dich auf **max. 6-8 Stunden**.
+## Wichtige Entscheidungen & Trade-offs
+* **1D-Liste für das Board**: Statt eines 2D-Arrays (`List<List<String>>`) nutze ich eine flache Liste mit 9 Feldern. Das passt perfekt zum `GridView.builder` von Flutter, der über einen fortlaufenden Index arbeitet. Eine 1D-Liste verhindert unnötige Index-Umrechnungen und hält den Code simpler.
+* **Scoped BLoC**: Der `GameBloc` wird nicht global, sondern erst beim Navigieren zum Spiel über einen `BlocProvider` in der Route bereitgestellt. Spart Ressourcen -> da der BLoC automatisch gelöscht wird, wenn der Screen verlassen wird.
+Dadurch musste ich nicht sowas wie resetGame auch in der AppBar beim zurücknavigieren ausführen.
 
-> Hinweis: Wenn du nicht fertig wirst, ist das ok. Wir bewerten auch Teil-Ergebnisse - entscheidend ist, dass wir dein Vorgehen nachvollziehen können. Solltest du in diese Situation kommen, dokumentiere dein Plan für das weitere Vorgehen.
+### Online-Multiplayer
+* Neuer Screen für Modus-Wahl und Nicknames.
+* Implementierung von "GameRooms" über Unique Keys.
+* Ein Repository-Layer würde die lokalen Events an ein Backend (WebSockets/Firebase) senden, statt sie nur lokal zu verarbeiten.
+* Ein `MakeMove`-Event würde dann nicht mehr nur lokal den State ändern, sondern den Zug an einen Server senden.
 
-## Ziel
-Baue eine kleine Flutter App mit einem spielbaren **Tic-Tac-Toe** (lokal auf einem Gerät). 
+### Persistenz (Spielstände/Statistiken)
+* Repository für lokalen Speicher (z.B. Shared Preferences) oder eine Online-Datenbank
+* Datenbank-Anbindung für Online-Statistiken oder zum Zwischenspeichern laufender Partien.
 
-## Anforderungen (MVP)
+### Varianten (Boardgrößen & Regeln)
+* Die `GameEngine` ist bereits so aufgebaut, dass sie leicht erweitert werden kann. Man könnte Parameter für die Feldgröße oder die Anzahl der benötigten Zeichen für einen Sieg hinzufügen. 
+* Da die UI (`GridView`) dynamisch auf die Listenlänge reagiert, müsste kaum Code dupliziert werden. Jede Variante könnte als Konfiguration an denselben BLoC übergeben werden.
 
-### 1) Startscreen
-- Die App startet auf einem Startscreen.
-- Ein Button **Spiel starten!** navigiert zum Game Screen.
-
-### 2) Game Screen
-- Ein **3x3 Grid** (Tic-Tac-Toe Board).
-- Spieler wechseln sich ab (**X** / **O**).
-- Ein Feld kann **nur einmal** belegt werden.
-- Das Spiel erkennt zuverlässig:
-    - **X gewinnt**
-    - **O gewinnt**
-    - **Unentschieden**
-
-### 3) Spielende
-- Informiere den Nutzer eindeutig über das Ergebnis (z. B. Dialog/Snackbar/Screen - du entscheidest).
-- Danach soll der Nutzer sinnvoll wieder in einen **Start-/Neustart**-Flow kommen (z. B. zurück zum Startscreen oder **neues Spiel**). Bitte begründe deine Wahl kurz.
-
-## Qualitäts- & Struktur-Erwartungen
-Wir achten besonders auf:
-- **Nachvollziehbare Code Struktur & Architektur** (angemessener Scope für das Projekt, kein Overengineering)
-- **Erweiterbarkeit** als Denkmodell (du musst die Erweiterungen nicht bauen, aber so strukturieren, dass sie später gut möglich wären, ohne das man alles komplett aufreissen muss)
-- **Qualitätsbewusstsein** (Robustheit, Edge Cases, Code Sauberkeit)
-- **Arbeitsweise** (Git-Verlauf, saubere Inkremente, Lesbarkeit)
-- **Selbstständigkeit** (Wie gehst du mit offenen technischen Anforderungen um?)
-
-## Arbeitsweise / Abgabe
-
-### Git
-- Bitte arbeite in einem **Git Repository**.
-- Wir erwarten **mehrere sinnvolle Commits** mit verständlichen Messages.
-
-### README (wichtig)
-Lege im Repo eine kurze `README.md` an mit:
-- Setup / **How to run**
-- Annahmen & Scope (was hast du bewusst weggelassen?)
-- Kurzer Überblick über die Struktur/Architektur
-- Wichtigste Entscheidungen & Trade-offs - was waren die Möglichkeiten die du evaluiert hast und warum hast du dich dann für die genutzte Lösung entschieden?
-- **Next steps**: wie würdest du folgende Erweiterungen anbinden? Stichpunkte genügen
-  - Online/Multiplayer
-  - Persistenz (Spielstände/Statistiken)
-  - Varianten (andere Boardgrößen, Regeln, Best-of-X)
-
-### Abgabe
-- Repo-Link (bevorzugt) oder Zip inkl. `.git` Ordner
-
-## Optional (wenn du noch Zeit hast)
-- Kleine UX-Verbesserungen (z. B. aktueller Spieler, **Play again**, etc.)
-- Eine Skizze/Diagramm zur aktuellen (und ggf. geplanten Erweiterungs-) Architektur
-
-## Was wir im Follow-up besprechen
-Nach der Abgabe machen wir typischerweise ein kurzes Gespräch (ca. 20-30 Minuten):
-- Walkthrough: Wie ist das Projekt aufgebaut?
-- Priorisierung: Was kam zuerst und warum?
-- Qualität: Wie hast du Korrektheit abgesichert? Was wären die nächsten Refactorings?
-- Evolution: Was müsste sich ändern für (z. B.) 4x4 Board oder Multiplayer?
-
----
-
-Vielen Dank - wir freuen uns auf deine Lösung.
+## Architektur-Skizze
+Das folgende Diagramm zeigt den aktuellen Datenfluss und wie zukünftige Erweiterungen (gestrichelt) angebunden würden:
+```mermaid
+graph TD
+    A[StartScreen] -->|Navigator.push| B[GameScreen]
+    B --> C[BlocProvider / GameBloc]
+    C --> D[GameView]
+    D -->|MakeMove Event| C
+    C -->|Check Rules| E[GameEngine Domain]
+    E -->|Winner/Draw| C
+    C -->|New State| D
+    
+    subgraph "Zukünftige Erweiterungen"
+    F[Local Storage / DB]
+    G[Online Service / API]
+    end
+    
+    C -.-> F
+    C -.-> G
